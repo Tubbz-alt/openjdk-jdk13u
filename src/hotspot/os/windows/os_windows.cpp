@@ -1365,11 +1365,14 @@ static int _print_module(const char* fname, address base_address,
 // in case of error it checks if .dll/.so was built for the
 // same architecture as Hotspot is running on
 void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
+  log_info(os)("attempting shared library load of %s", name);
+
   void * result = LoadLibrary(name);
   if (result != NULL) {
     Events::log(NULL, "Loaded shared library %s", name);
     // Recalculate pdb search path if a DLL was loaded successfully.
     SymbolEngine::recalc_search_path();
+    log_info(os)("shared library load of %s was successful", name);
     return result;
   }
   DWORD errcode = GetLastError();
@@ -1378,6 +1381,7 @@ void * os::dll_load(const char *name, char *ebuf, int ebuflen) {
   lasterror(ebuf, (size_t) ebuflen);
   ebuf[ebuflen - 1] = '\0';
   Events::log(NULL, "Loading shared library %s failed, error code %lu", name, errcode);
+  log_info(os)("shared library load of %s failed, error code %lu", name, errcode);
 
   if (errcode == ERROR_MOD_NOT_FOUND) {
     strncpy(ebuf, "Can't find dependent libraries", ebuflen - 1);
@@ -2709,9 +2713,7 @@ class NUMANodeListHolder {
   int _numa_used_node_count;
 
   void free_node_list() {
-    if (_numa_used_node_list != NULL) {
-      FREE_C_HEAP_ARRAY(int, _numa_used_node_list);
-    }
+    FREE_C_HEAP_ARRAY(int, _numa_used_node_list);
   }
 
  public:
@@ -5026,7 +5028,7 @@ bool os::pd_unmap_memory(char* addr, size_t bytes) {
 void os::pause() {
   char filename[MAX_PATH];
   if (PauseAtStartupFile && PauseAtStartupFile[0]) {
-    jio_snprintf(filename, MAX_PATH, PauseAtStartupFile);
+    jio_snprintf(filename, MAX_PATH, "%s", PauseAtStartupFile);
   } else {
     jio_snprintf(filename, MAX_PATH, "./vm.paused.%d", current_process_id());
   }

@@ -454,9 +454,7 @@ static bool assign_distribution(processorid_t* id_array,
       board = 0;
     }
   }
-  if (available_id != NULL) {
-    FREE_C_HEAP_ARRAY(bool, available_id);
-  }
+  FREE_C_HEAP_ARRAY(bool, available_id);
   return true;
 }
 
@@ -493,9 +491,7 @@ bool os::distribute_processes(uint length, uint* distribution) {
       result = false;
     }
   }
-  if (id_array != NULL) {
-    FREE_C_HEAP_ARRAY(processorid_t, id_array);
-  }
+  FREE_C_HEAP_ARRAY(processorid_t, id_array);
   return result;
 }
 
@@ -1525,10 +1521,13 @@ void os::print_dll_info(outputStream * st) {
 // same architecture as Hotspot is running on
 
 void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
+  log_info(os)("attempting shared library load of %s", filename);
+
   void * result= ::dlopen(filename, RTLD_LAZY);
   if (result != NULL) {
     // Successful loading
     Events::log(NULL, "Loaded shared library %s", filename);
+    log_info(os)("shared library load of %s was successful", filename);
     return result;
   }
 
@@ -1543,6 +1542,7 @@ void * os::dll_load(const char *filename, char *ebuf, int ebuflen) {
   }
 
   Events::log(NULL, "Loading shared library %s failed, %s", filename, error_report);
+  log_info(os)("shared library load of %s failed, %s", filename, error_report);
 
   int diag_msg_max_length=ebuflen-strlen(ebuf);
   char* diag_msg_buf=ebuf+strlen(ebuf);
@@ -4398,7 +4398,7 @@ bool os::pd_unmap_memory(char* addr, size_t bytes) {
 void os::pause() {
   char filename[MAX_PATH];
   if (PauseAtStartupFile && PauseAtStartupFile[0]) {
-    jio_snprintf(filename, MAX_PATH, PauseAtStartupFile);
+    jio_snprintf(filename, MAX_PATH, "%s", PauseAtStartupFile);
   } else {
     jio_snprintf(filename, MAX_PATH, "./vm.paused.%d", current_process_id());
   }

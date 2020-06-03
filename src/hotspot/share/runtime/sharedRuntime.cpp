@@ -2632,6 +2632,7 @@ AdapterHandlerEntry* AdapterHandlerLibrary::get_adapter(const methodHandle& meth
       MacroAssembler _masm(&buffer);
       SharedRuntime::generate_trampoline(&_masm, entry->get_c2i_entry());
       assert(*(int*)trampoline != 0, "Instruction(s) for trampoline must not be encoded as zeros.");
+      _masm.flush();
 
       if (PrintInterpreter) {
         Disassembler::decode(buffer.insts_begin(), buffer.insts_end());
@@ -2814,7 +2815,7 @@ void AdapterHandlerEntry::relocate(address new_base) {
 void AdapterHandlerEntry::deallocate() {
   delete _fingerprint;
 #ifdef ASSERT
-  if (_saved_code) FREE_C_HEAP_ARRAY(unsigned char, _saved_code);
+  FREE_C_HEAP_ARRAY(unsigned char, _saved_code);
 #endif
 }
 
@@ -2849,10 +2850,16 @@ bool AdapterHandlerEntry::compare_code(unsigned char* buffer, int length) {
 void AdapterHandlerLibrary::create_native_wrapper(const methodHandle& method) {
   ResourceMark rm;
   nmethod* nm = NULL;
+  address critical_entry = NULL;
 
   assert(method->is_native(), "must be native");
   assert(method->is_method_handle_intrinsic() ||
          method->has_native_function(), "must have something valid to call!");
+
+  if (CriticalJNINatives && !method->is_method_handle_intrinsic()) {
+    // We perform the I/O with transition to native before acquiring AdapterHandlerLibrary_lock.
+    critical_entry = NativeLookup::lookup_critical_entry(method);
+  }
 
   {
     // Perform the work while holding the lock, but perform any printing outside the lock
@@ -2898,7 +2905,7 @@ void AdapterHandlerLibrary::create_native_wrapper(const methodHandle& method) {
       int comp_args_on_stack = SharedRuntime::java_calling_convention(sig_bt, regs, total_args_passed, is_outgoing);
 
       // Generate the compiled-to-native wrapper code
-      nm = SharedRuntime::generate_native_wrapper(&_masm, method, compile_id, sig_bt, regs, ret_type);
+      nm = SharedRuntime::generate_native_wrapper(&_masm, method, compile_id, sig_bt, regs, ret_type, critical_entry);
 
       if (nm != NULL) {
         method->set_code(method, nm);

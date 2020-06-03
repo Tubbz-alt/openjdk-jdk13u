@@ -746,9 +746,6 @@ const size_t minimumSymbolTableSize = 1024;
   product(bool, ReduceSignalUsage, false,                                   \
           "Reduce the use of OS signals in Java and/or the VM")             \
                                                                             \
-  develop_pd(bool, ShareVtableStubs,                                        \
-          "Share vtable stubs (smaller code but worse branch prediction")   \
-                                                                            \
   develop(bool, LoadLineNumberTables, true,                                 \
           "Tell whether the class file parser loads line number tables")    \
                                                                             \
@@ -1781,13 +1778,13 @@ const size_t minimumSymbolTableSize = 1024;
           range(0, 100)                                                     \
                                                                             \
   /* AOT parameters */                                                      \
-  product(bool, UseAOT, AOT_ONLY(true) NOT_AOT(false),                      \
+  experimental(bool, UseAOT, false,                                         \
           "Use AOT compiled files")                                         \
                                                                             \
-  product(ccstrlist, AOTLibrary, NULL,                                      \
+  experimental(ccstrlist, AOTLibrary, NULL,                                 \
           "AOT library")                                                    \
                                                                             \
-  product(bool, PrintAOT, false,                                            \
+  experimental(bool, PrintAOT, false,                                       \
           "Print used AOT klasses and methods")                             \
                                                                             \
   notproduct(bool, PrintAOTStatistics, false,                               \
@@ -2451,11 +2448,11 @@ const size_t minimumSymbolTableSize = 1024;
   diagnostic(bool, ShowRegistersOnAssert, true,                             \
           "On internal errors, include registers in error report.")         \
                                                                             \
-  experimental(bool, UseSwitchProfiling, true,                              \
+  diagnostic(bool, UseSwitchProfiling, true,                                \
           "leverage profiling for table/lookup switch")                     \
                                                                             \
   JFR_ONLY(product(bool, FlightRecorder, false,                             \
-          "(Deprecated) Enable Flight Recorder"))                                        \
+          "(Deprecated) Enable Flight Recorder"))                           \
                                                                             \
   JFR_ONLY(product(ccstr, FlightRecorderOptions, NULL,                      \
           "Flight Recorder options"))                                       \

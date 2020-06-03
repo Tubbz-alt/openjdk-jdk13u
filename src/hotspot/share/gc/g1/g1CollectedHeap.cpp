@@ -56,6 +56,7 @@
 #include "gc/g1/g1SATBMarkQueueSet.hpp"
 #include "gc/g1/g1StringDedup.hpp"
 #include "gc/g1/g1ThreadLocalData.hpp"
+#include "gc/g1/g1Trace.hpp"
 #include "gc/g1/g1YCTypes.hpp"
 #include "gc/g1/g1YoungRemSetSamplingThread.hpp"
 #include "gc/g1/g1VMOperations.hpp"
@@ -67,7 +68,6 @@
 #include "gc/shared/gcId.hpp"
 #include "gc/shared/gcLocker.hpp"
 #include "gc/shared/gcTimer.hpp"
-#include "gc/shared/gcTrace.hpp"
 #include "gc/shared/gcTraceTime.inline.hpp"
 #include "gc/shared/generationSpec.hpp"
 #include "gc/shared/isGCActiveMark.hpp"
@@ -1564,6 +1564,7 @@ G1CollectedHeap::G1CollectedHeap() :
 
   // Initialize the G1EvacuationFailureALot counters and flags.
   NOT_PRODUCT(reset_evacuation_should_fail();)
+  _gc_tracer_stw->initialize();
 
   guarantee(_task_queues != NULL, "task_queues allocation failure.");
 }
@@ -2151,6 +2152,12 @@ bool G1CollectedHeap::try_collect(GCCause::Cause cause, bool retry_on_gc_failure
           GCLocker::stall_until_clear();
         }
       }
+    } else if (GCLocker::should_discard(cause, gc_count_before)) {
+      // Return false to be consistent with VMOp failure due to
+      // another collection slipping in after our gc_count but before
+      // our request is processed.  _gc_locker collections upgraded by
+      // GCLockerInvokesConcurrent are handled above and never discarded.
+      return false;
     } else {
       if (cause == GCCause::_gc_locker || cause == GCCause::_wb_young_gc
           DEBUG_ONLY(|| cause == GCCause::_scavenge_alot)) {
